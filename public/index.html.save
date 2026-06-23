@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TikTok Downloader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+      font-family: Arial, sans-serif;
+      text-align:center;
+      padding:30px;
+      background:#111;
+      color:white;
+    }
+
+    input{
+      width:90%;
+      max-width:400px;
+      padding:12px;
+      border:none;
+      border-radius:8px;
+      margin:10px;
+    }
+
+    button{
+      padding:12px 20px;
+      border:none;
+      border-radius:8px;
+      background:#00ff99;
+      font-weight:bold;
+      cursor:pointer;
+    }
+
+    #result{
+      margin-top:20px;
+    }
+
+    video{
+      width:100%;
+      max-width:400px;
+      margin-top:15px;
+    }
+
+    a{
+      color:#00ff99;
+      font-size:18px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>TikTok Downloader 🚀</h1>
+
+<input
+  type="text"
+  id="url"
+  placeholder="Paste TikTok Link"
+/>
+
+<br>
+
+<button onclick="downloadVideo()">
+  Download
+</button>
+
+<div id="result"></div>
+
+<script>
+async function downloadVideo() {
+
+  const url = document.getElementById("url").value;
+
+  const result = document.getElementById("result");
+
+  result.innerHTML = "Loading...";
+
+  try {
+
+    const response = await fetch(
+      `/download?url=${encodeURIComponent(url)}`
+    );
+
+    const data = await response.json();
+
+    result.innerHTML = `
+      <video controls src="${data.data.play}"></video>
+      <br><br>
+      <a href="${data.data.play}" download>
+        Download Video
+      </a>
+    `;
+
+  } catch(err) {
+
+    result.innerHTML = "Error loading video";
+
+  }
+}
+</script>
+
+</body>
+</html>

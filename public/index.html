@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ØBΛ Downloader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body{
+      font-family:Arial,sans-serif;
+      background:#111;
+      color:white;
+      text-align:center;
+      padding:30px;
+    }
+
+    h1{
+      color:#00ff99;
+    }
+
+    p{
+      color:#ccc;
+    }
+
+    input{
+      width:90%;
+      max-width:450px;
+      padding:12px;
+      border:none;
+      border-radius:8px;
+      margin:10px;
+      font-size:16px;
+    }
+
+    button{
+      padding:12px 24px;
+      border:none;
+      border-radius:8px;
+      background:#00ff99;
+      font-size:16px;
+      font-weight:bold;
+      cursor:pointer;
+    }
+
+    #result{
+      margin-top:25px;
+    }
+
+    video{
+      width:100%;
+      max-width:450px;
+      border-radius:10px;
+      margin-top:15px;
+    }
+
+    a{
+      display:inline-block;
+      margin-top:15px;
+      padding:12px 20px;
+      background:#00ff99;
+      color:black;
+      text-decoration:none;
+      border-radius:8px;
+      font-weight:bold;
+    }
+  
+@keyframes pulse{
+
+0%{
+opacity:.4;
+}
+
+50%{
+opacity:1;
+}
+
+100%{
+opacity:.4;
+}
+
+}
+
+.status{
+
+animation: pulse 2s infinite;
+
+}
+
+</style>
+
+</head>
+<body>
+
+<div style="margin-bottom:25px;">
+
+<h1 style="font-size:42px;margin-bottom:5px;">
+ØBΛ Downloader
+</h1>
+
+<p style="font-size:18px;color:#00ff99;">
+Fast • Secure • Premium
+</p>
+
+<p style="color:#bbb;">
+Download videos from your favorite platforms in seconds.
+</p>
+
+<div class="status" style="
+display:inline-block;
+margin-top:10px;
+padding:8px 18px;
+background:#1e1e1e;
+border:1px solid #00ff99;
+border-radius:30px;
+color:#00ff99;
+font-weight:bold;
+">
+
+
+🟢 System Status: Online
+
+</div>
+
+</div>
+
+<p>
+TikTok • Instagram • Facebook • YouTube • X
+</p>
+
+<input
+type="text"
+id="url"
+placeholder="Paste TikTok, Instagram, Facebook, YouTube or X Link">
+
+<p id="platform">
+Waiting for link...
+</p>
+
+<br>
+
+<button onclick="downloadVideo()">
+Download
+</button>
+
+<div id="result"></div>
+
+<script>
+
+const input = document.getElementById("url");
+
+const platform = document.getElementById("platform");
+
+input.addEventListener("input", () => {
+
+    const value = input.value.toLowerCase();
+
+    if (value.includes("tiktok")) {
+
+        platform.innerHTML = "🎵 TikTok detected";
+
+    } else if (value.includes("instagram")) {
+
+        platform.innerHTML = "📸 Instagram detected";
+
+    } else if (value.includes("youtube") || value.includes("youtu.be")) {
+
+        platform.innerHTML = "▶️ YouTube detected";
+
+    } else if (value.includes("facebook")) {
+
+        platform.innerHTML = "📘 Facebook detected";
+
+    } else if (value.includes("twitter") || value.includes("x.com")) {
+
+        platform.innerHTML = "❌ X detected";
+
+    } else {
+
+        platform.innerHTML = "Waiting for link...";
+
+    }
+
+});
+
+async function downloadVideo(){
+
+const url=document.getElementById("url").value;
+
+const result=document.getElementById("result");
+
+result.innerHTML = `
+<div style="
+background:#1b1b1b;
+padding:20px;
+border-radius:15px;
+border:1px solid #00ff99;
+margin-top:20px;
+">
+
+<h3>⏳ Fetching your video...</h3>
+
+<p>Please wait a few seconds.</p>
+
+<div style="
+height:8px;
+background:#333;
+border-radius:20px;
+overflow:hidden;
+">
+
+<div style="
+width:100%;
+height:100%;
+background:#00ff99;
+animation: pulse 1.2s infinite;
+">
+</div>
+
+</div>
+
+</div>
+`;
+
+try{
+
+const response=await fetch(`/download?url=${encodeURIComponent(url)}`);
+
+const data=await response.json();
+
+if(!data.success){
+
+result.innerHTML=`
+<h2>${data.platform || "ØBΛ Downloader"}</h2>
+<p>${data.message}</p>
+`;
+
+return;
+
+}
+
+
+result.innerHTML = `
+
+<div style="
+background:#1b1b1b;
+padding:20px;
+border-radius:18px;
+margin-top:20px;
+border:1px solid #00ff99;
+box-shadow:0 0 20px rgba(0,255,153,.15);
+">
+
+<div style="
+display:inline-block;
+padding:6px 15px;
+background:#00ff99;
+color:#111;
+border-radius:20px;
+font-weight:bold;
+margin-bottom:15px;
+">
+
+🎵 ${data.platform}
+
+</div>
+
+<h2>${data.data.title}</h2>
+
+<p>
+👤 ${data.data.author.nickname}
+</p>
+
+<video
+controls
+src="${data.data.play}">
+</video>
+
+<br><br>
+
+<a
+href="${data.data.play}"
+download
+style="
+display:inline-block;
+padding:12px 25px;
+background:#00ff99;
+color:#111;
+font-weight:bold;
+border-radius:10px;
+text-decoration:none;
+">
+
+⬇ Download HD Video
+
+</a>
+
+<br><br>
+
+<button onclick="resetPage()" style="
+background:#222;
+color:#00ff99;
+border:1px solid #00ff99;
+padding:12px 25px;
+border-radius:10px;
+cursor:pointer;
+">
+
+🔄 Download Another Video
+
+</button>
+
+</div>
+
+
+`;
+
+
+}catch(err){
+
+result.innerHTML=`
+<h2>Error</h2>
+<p>Something went wrong.</p>
+`;
+
+}
+
+}
+
+function resetPage(){
+
+document.getElementById("url").value="";
+
+document.getElementById("platform").innerHTML="Waiting for link...";
+
+document.getElementById("result").innerHTML="";
+
+document.getElementById("url").focus();
+
+}
+
+</script>
+
+</body>
+</html>
+
