@@ -4,9 +4,13 @@ const tiktokRoute = require("./routes/tiktok");
 
 const instagramRoute = require("./routes/instagram");
 
+const logger = require("./middleware/logger");
+
 const app = express();
 
 app.use(express.static("public"));
+
+app.use(logger);
 
 app.use("/", tiktokRoute);
 
