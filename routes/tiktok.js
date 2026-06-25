@@ -4,7 +4,9 @@ const router = express.Router();
 
 const { downloadTikTok } = require("../services/tiktok");
 
-router.get("/download", async (req, res) => {
+const validateUrl = require("../middleware/validateUrl");
+
+router.get("/download", validateUrl, async (req, res) => {
 
     const url = req.query.url;
 
