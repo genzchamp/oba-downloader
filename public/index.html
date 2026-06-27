@@ -212,29 +212,35 @@ input.addEventListener("input", () => {
 
     const value = input.value.toLowerCase();
 
-    if (value.includes("tiktok")) {
+if (value.includes("tiktok")) {
 
-        platform.innerHTML = "🎵 TikTok detected";
+    platform.innerHTML =
+    '<span style="background:#00ff99;color:#111;padding:8px 15px;border-radius:20px;font-weight:bold;">🎵 TikTok</span>';
 
     } else if (value.includes("instagram")) {
 
-        platform.innerHTML = "📸 Instagram detected";
+        platform.innerHTML =
+'<span style="background:#E1306C;color:white;padding:8px 15px;border-radius:20px;font-weight:bold;">📸 Instagram</span>';
 
     } else if (value.includes("youtube") || value.includes("youtu.be")) {
 
-        platform.innerHTML = "▶️ YouTube detected";
+        platform.innerHTML =
+'<span style="background:#FF0000;color:white;padding:8px 15px;border-radius:20px;font-weight:bold;">▶️ YouTube</span>';
 
     } else if (value.includes("facebook")) {
 
-        platform.innerHTML = "📘 Facebook detected";
+        platform.innerHTML =
+'<span style="background:#1877F2;color:white;padding:8px 15px;border-radius:20px;font-weight:bold;">📘 Facebook</span>';
 
     } else if (value.includes("twitter") || value.includes("x.com")) {
 
-        platform.innerHTML = "❌ X detected";
+        platform.innerHTML =
+'<span style="background:#222;color:white;padding:8px 15px;border-radius:20px;font-weight:bold;">✖ X</span>'; 
 
     } else {
 
-        platform.innerHTML = "Waiting for link...";
+        platform.innerHTML =
+'<span style="color:#999;">Waiting for link...</span>';
 
     }
 
