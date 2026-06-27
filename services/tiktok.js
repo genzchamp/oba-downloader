@@ -6,9 +6,11 @@ async function downloadTikTok(url) {
         `https://tikwm.com/api/?url=${encodeURIComponent(url)}`
     );
 
-    return response.data.data;
+return {
+    platform: "TikTok",
+    ...response.data.data
+};
 }
-
 module.exports = {
     downloadTikTok
 };

@@ -2,7 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 
-const { downloadTikTok } = require("../services/tiktok");
+const { download } = require("../services/downloader");
 
 const validateUrl = require("../middleware/validateUrl");
 
@@ -21,13 +21,13 @@ router.get("/download", validateUrl, async (req, res) => {
 
     try{
 
-        const data = await downloadTikTok(url);
+        const data = await download(url);
 
-        res.json({
-            success:true,
-            platform:"TikTok",
-            data
-        });
+res.json({
+    success: true,
+    platform: data.platform || "TikTok",
+    data
+});
 
     }catch(err){
 
