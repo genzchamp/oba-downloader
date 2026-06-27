@@ -202,6 +202,18 @@ Built with ❤️ by ØBΛ • Powered by Allah's Permission
 
 </footer>
 
+<div id="apiStatus" style="
+margin-top:25px;
+padding:15px;
+background:#1b1b1b;
+border:1px solid #00ff99;
+border-radius:12px;
+color:white;
+text-align:center;
+">
+Loading API status...
+</div>
+
 <script>
 
 const input = document.getElementById("url");
@@ -401,6 +413,32 @@ document.getElementById("result").innerHTML="";
 document.getElementById("url").focus();
 
 }
+
+async function loadApiStatus() {
+
+    try {
+
+        const response = await fetch("/api");
+
+        const api = await response.json();
+
+        document.getElementById("apiStatus").innerHTML = `
+            <b>${api.app}</b><br>
+            Version: ${api.version}<br>
+            Status: 🟢 ${api.status}<br>
+            Platforms: ${api.supportedPlatforms.join(", ")}
+        `;
+
+    } catch {
+
+        document.getElementById("apiStatus").innerHTML =
+            "🔴 API Offline";
+
+    }
+
+}
+
+loadApiStatus();
 
 </script>
 

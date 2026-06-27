@@ -22,7 +22,16 @@ app.get("/api", (req, res) => {
     res.json({
         app: config.APP_NAME,
         version: config.VERSION,
-        status: "Online"
+        status: "Online",
+        developer: "genzchamp",
+        supportedPlatforms: [
+            "TikTok",
+            "Instagram",
+            "Facebook",
+            "YouTube",
+            "X"
+        ],
+        live: true
     });
 });
 
