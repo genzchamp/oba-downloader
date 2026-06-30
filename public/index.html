@@ -303,6 +303,8 @@ const response=await fetch(`/download?url=${encodeURIComponent(url)}`);
 
 const data=await response.json();
 
+console.log(data);
+
 if(!data.success){
 
 result.innerHTML=`
@@ -340,10 +342,23 @@ margin-bottom:15px;
 
 </div>
 
+<img
+src="${data.data.thumbnail || ''}"
+style="
+width:100%;
+max-width:350px;
+border-radius:15px;
+margin-bottom:20px;
+"
+>
+
 <h2>${data.data.title}</h2>
 
 <p>
+
+🏷 ${data.platform}<br>
 👤 ${data.data.author.nickname}
+
 </p>
 
 <video
