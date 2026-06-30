@@ -7,7 +7,11 @@ async function download(url) {
         return await downloadTikTok(url);
     }
 
-    if (url.includes("instagram")) {
+
+    if (
+        url.includes("instagram.com/reel/") ||
+        url.includes("instagram.com/p/")
+    ) {
         return await downloadInstagram(url);
     }
 
