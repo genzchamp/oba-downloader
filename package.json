@@ -1,19 +1,19 @@
 {
   "name": "oba-downloader",
   "version": "2.0.0",
-  "description": "ØBΛ Downloader API and web application",
+  "description": "DownloadMe — fast, simple media downloader API and web application.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
   "keywords": [
-    "tiktok",
     "downloader",
-    "video",
-    "oba"
+    "media downloader",
+    "tiktok",
+    "downloadme"
   ],
-  "author": "ØBΛ",
+  "author": "OBA Digital Studio",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
