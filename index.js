@@ -1,124 +1,116 @@
+require("dotenv").config();
+
 const express = require("express");
-const axios = require("axios");
-const cheerio = require("cheerio");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+
+const { download } = require("./src/providers/tiktok");
+const { validateUrl } = require("./src/utils/validation");
 
 const app = express();
+const port = Number(process.env.PORT) || 3000;
 
+app.disable("x-powered-by");
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || "*",
+  methods: ["GET", "OPTIONS"]
+}));
+app.use(express.json({ limit: "10kb" }));
+app.use(morgan("combined"));
 app.use(express.static("public"));
+
+const rateWindowMs = 60 * 1000;
+const maxRequests = Number(process.env.RATE_LIMIT_MAX) || 30;
+const rateStore = new Map();
+
+function rateLimit(req, res, next) {
+  const now = Date.now();
+  const key = req.ip || "unknown";
+  const current = rateStore.get(key);
+
+  if (!current || now - current.startedAt >= rateWindowMs) {
+    rateStore.set(key, { startedAt: now, count: 1 });
+    return next();
+  }
+
+  current.count += 1;
+
+  if (current.count > maxRequests) {
+    const retryAfter = Math.ceil((rateWindowMs - (now - current.startedAt)) / 1000);
+    res.set("Retry-After", String(retryAfter));
+    return res.status(429).json({
+      success: false,
+      message: "Too many requests. Please try again shortly."
+    });
+  }
+
+  return next();
+}
 
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
 
-app.get("/download", async (req, res) => {
+app.get("/api", (req, res) => {
+  res.json({
+    app: "ØBΛ Downloader",
+    version: "2.0.0",
+    status: "online",
+    supportedPlatforms: ["TikTok"],
+    endpoints: {
+      download: "/download?url=YOUR_TIKTOK_URL"
+    }
+  });
+});
 
-  const url = req.query.url;
+app.get("/download", rateLimit, async (req, res) => {
+  const validation = validateUrl(req.query.url);
 
-  if (!url) {
-    return res.json({
+  if (!validation.ok) {
+    return res.status(400).json({
       success: false,
-      message: "Please provide a URL."
+      message: validation.message
     });
   }
 
   try {
-
-    // -------------------
-    // TikTok
-    // -------------------
-    if (
-      url.includes("tiktok.com") ||
-      url.includes("vt.tiktok.com")
-    ) {
-
-      const response = await axios.get(
-        `https://tikwm.com/api/?url=${encodeURIComponent(url)}`
-      );
-
-      return res.json({
-        success: true,
-        platform: "TikTok",
-        data: response.data.data
-      });
-    }
-
-    // -------------------
-    // Instagram (temporary)
-    // -------------------
-    if (
-      url.includes("instagram.com")
-    ) {
-
-      return res.json({
-        success: false,
-        platform: "Instagram",
-        message: "Instagram support is coming next..."
-      });
-    }
-
-    // -------------------
-    // Facebook (temporary)
-    // -------------------
-    if (
-      url.includes("facebook.com") ||
-      url.includes("fb.watch")
-    ) {
-
-      return res.json({
-        success: false,
-        platform: "Facebook",
-        message: "Facebook support is coming soon..."
-      });
-    }
-
-    // -------------------
-    // YouTube (temporary)
-    // -------------------
-    if (
-      url.includes("youtube.com") ||
-      url.includes("youtu.be")
-    ) {
-
-      return res.json({
-        success: false,
-        platform: "YouTube",
-        message: "YouTube support is coming soon..."
-      });
-    }
-
-    // -------------------
-    // X / Twitter (temporary)
-    // -------------------
-    if (
-      url.includes("twitter.com") ||
-      url.includes("x.com")
-    ) {
-
-      return res.json({
-        success: false,
-        platform: "X",
-        message: "X support is coming soon..."
-      });
-    }
+    const data = await download(validation.url);
 
     return res.json({
-      success: false,
-      message: "Unsupported link."
+      success: true,
+      platform: validation.platform,
+      data
     });
+  } catch (error) {
+    console.error("Download error:", error.message);
 
-  } catch (err) {
-
-    console.log(err);
-
-    res.json({
+    return res.status(502).json({
       success: false,
-      message: "Something went wrong."
+      platform: validation.platform,
+      message: "The video could not be fetched right now. Please try again."
     });
-
   }
-
 });
 
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found."
+  });
+});
+
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({
+    success: false,
+    message: "Internal server error."
+  });
+});
+
+app.listen(port, () => {
+  console.log("ØBΛ Downloader API running on port " + port);
 });
