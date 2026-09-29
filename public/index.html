@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ØBΛ Downloader</title>
+  <title>DownloadMe — Media Downloader</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -93,7 +93,7 @@ animation: pulse 2s infinite;
 <div style="margin-bottom:25px;">
 
 <h1 style="font-size:42px;margin-bottom:5px;">
-ØBΛ Downloader
+DownloadMe
 </h1>
 
 <p style="font-size:18px;color:#00ff99;">
@@ -101,7 +101,7 @@ Fast • Secure • Premium
 </p>
 
 <p style="color:#bbb;">
-Download videos from your favorite platforms in seconds.
+Download supported media in seconds. More platforms are coming.
 </p>
 
 <div class="status" style="
@@ -123,13 +123,13 @@ font-weight:bold;
 </div>
 
 <p>
-TikTok • Instagram • Facebook • YouTube • X
+TikTok • More platforms coming soon
 </p>
 
 <input
 type="text"
 id="url"
-placeholder="Paste TikTok, Instagram, Facebook, YouTube or X Link">
+placeholder="Paste a supported media link">
 
 <p id="platform">
 Waiting for link...
@@ -198,7 +198,7 @@ color:#777;
 font-size:14px;
 ">
 
-Built with ❤️ by ØBΛ • Powered by Allah's Permission
+Built with ❤️ by OBA • Powered by Allah's Permission
 
 </footer>
 
@@ -357,7 +357,7 @@ margin-bottom:20px;
 <p>
 
 🏷 ${data.platform}<br>
-👤 ${data.data.author.nickname}
+👤 ${data.data.author?.nickname || data.data.author?.unique_id || "Creator"}
 
 </p>
 
