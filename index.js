@@ -43,7 +43,13 @@ function findNestedMedia(data){
  const urls=video?.play_addr?.url_list||video?.download_addr?.url_list||video?.playAddr?.urlList||[];
  return firstString(data?.hdplay,data?.play,data?.wmplay,data?.url,data?.video_url,data?.download_url,data?.downloadUrl,data?.play_url,data?.play_addr,data?.video?.play,data?.video?.url,video?.play_addr?.url,video?.download_addr?.url,...urls);
 }
-app.get("/api",(_req,res)=>res.json({app:"ØBΛ Downloader",version:"2.3.0",status:"online",supportedPlatforms:["TikTok links and share text"],plannedPlatforms:["Instagram","YouTube","Facebook","X","Pinterest","Reddit","Snapchat","Threads"]}));
+const PRIORITY_PLATFORMS=["Instagram","Facebook","Snapchat","YouTube","X"];
+function cobaltConfigured(){return Boolean(process.env.COBALT_API_URL&&/^https:\/\//i.test(process.env.COBALT_API_URL));}
+function cobaltBase(){return String(process.env.COBALT_API_URL||"").trim().replace(/\/+$/,"");}
+function safeCobaltUrl(raw){
+ try{const u=new URL(raw,cobaltBase());const base=new URL(cobaltBase());return u.protocol==="https:"&&u.origin===base.origin?u.toString():null;}catch{return null;}
+}
+app.get("/api",(_req,res)=>res.json({app:"ØBΛ Downloader",version:"2.4.0",status:"online",supportedPlatforms:["TikTok links and share text",...(cobaltConfigured()?PRIORITY_PLATFORMS:[])],plannedPlatforms:cobaltConfigured()?["Pinterest","Reddit","Threads"]:PRIORITY_PLATFORMS.concat(["Pinterest","Reddit","Threads"]),engineConfigured:cobaltConfigured()}));
 app.get("/health",(_req,res)=>res.json({ok:true}));
 app.get("/file",async(req,res)=>{
  const raw=typeof req.query.url==="string"?req.query.url:"";let media;try{media=new URL(raw);}catch{return res.status(400).send("Invalid media URL.");}
@@ -53,6 +59,26 @@ app.get("/file",async(req,res)=>{
  const contentType=upstream.headers["content-type"]||"video/mp4";if(!contentType.startsWith("video/")&&!contentType.includes("octet-stream")){upstream.data.destroy();return res.status(502).send("The provider did not return a video file.");}
  res.setHeader("Content-Type",contentType);res.setHeader("Content-Disposition",'attachment; filename="oba-tiktok-video.mp4"');res.setHeader("Cache-Control","no-store");upstream.data.on("error",()=>{if(!res.headersSent)res.status(502);res.end();});upstream.data.pipe(res);
  }catch(error){console.error("Media download failed:",error.message);if(!res.headersSent)res.status(502).send("Could not start the download. Please try again.");}
+});
+app.get("/cobalt-file",async(req,res)=>{
+ if(!cobaltConfigured())return res.status(503).send("The download engine is not configured.");
+ const target=safeCobaltUrl(typeof req.query.url==="string"?req.query.url:"");
+ if(!target)return res.status(400).send("Invalid download address.");
+ try{
+  const upstream=await axios.get(target,{responseType:"stream",timeout:90000,maxRedirects:0,validateStatus:status=>status>=200&&status<400,headers:{Accept:"*/*","User-Agent":"Mozilla/5.0"}});
+  if(upstream.status>=300&&upstream.status<400){
+   const redirected=safeCobaltUrl(new URL(upstream.headers.location||"",target).toString());
+   upstream.data?.destroy?.();
+   if(!redirected)return res.status(502).send("The engine redirected to an unexpected address.");
+   return res.redirect(302,"/cobalt-file?url="+encodeURIComponent(redirected));
+  }
+  const type=String(upstream.headers["content-type"]||"application/octet-stream");
+  if(type.includes("text/html")||type.includes("application/json")){upstream.data.destroy();return res.status(502).send("The engine did not return a media file.");}
+  res.setHeader("Content-Type",type);
+  res.setHeader("Content-Disposition",'attachment; filename="oba-social-media"');
+  res.setHeader("Cache-Control","no-store");
+  upstream.data.on("error",()=>{if(!res.headersSent)res.status(502);res.end();});upstream.data.pipe(res);
+ }catch(error){console.error("Open-source media stream failed:",error.message);if(!res.headersSent)res.status(502).send("Could not start the download. Please try again.");}
 });
 app.get("/download",async(req,res)=>{
  const rawInput=typeof req.query.url==="string"?req.query.url.trim():"";if(!rawInput||rawInput.length>4096)return res.status(400).json({success:false,message:"Paste a video link or the full share message copied from the app."});
@@ -67,9 +93,28 @@ app.get("/download",async(req,res)=>{
    if(!mediaUrl){console.warn("TikTok provider returned metadata without a media URL. Available keys:",Object.keys(data||{}));return res.status(502).json({success:false,platform,message:"The provider returned video details but no downloadable video file for this link. Try another public video or try again later."});}
    return res.json({success:true,platform,data:{title:data.title||"TikTok video",cover:data.cover||data.origin_cover||data.video?.cover||"",videoUrl:mediaUrl,downloadUrl:"/file?url="+encodeURIComponent(mediaUrl)}});
   }
-  const guidance={Instagram:"Instagram downloading is not enabled yet. Only public content that you have permission to save will be supported.",YouTube:"YouTube downloading is not enabled yet. Use YouTube's official download/offline options where available, or download content you own through YouTube Studio.",Facebook:"Facebook downloading is not enabled yet. Make sure you have permission to save the content.",X:"X downloading is not enabled yet. Make sure you have permission to save the content.",Pinterest:"Pinterest downloading is not enabled yet.",Reddit:"Reddit downloading is not enabled yet.",Snapchat:"Snapchat downloading is not enabled yet. Private or disappearing content will not be accessed.",Threads:"Threads downloading is not enabled yet."};
+  if(PRIORITY_PLATFORMS.includes(platform)){
+   if(!cobaltConfigured())return res.status(503).json({success:false,platform,message:"The open-source download engine is not connected yet. TikTok downloads are still available; additional platforms will activate after the engine is deployed."});
+   const requestHeaders={Accept:"application/json","Content-Type":"application/json"};
+   if(process.env.COBALT_API_KEY)requestHeaders.Authorization=(process.env.COBALT_AUTH_SCHEME||"Api-Key")+" "+process.env.COBALT_API_KEY;
+   const upstream=await axios.post(cobaltBase()+"/",{url:raw,videoQuality:"720",youtubeVideoCodec:"h264",filenameStyle:"basic"},{headers:requestHeaders,timeout:90000,validateStatus:()=>true});
+   const body=upstream.data||{};
+   if(upstream.status<200||upstream.status>=300||body.status==="error")return res.status(422).json({success:false,platform,message:"The open-source engine could not process this link. It may be private, restricted, unsupported, or temporarily unavailable."});
+   if(body.status==="picker"&&Array.isArray(body.picker)&&body.picker.length){
+    const items=body.picker.map(item=>({type:item.type||"video",url:safeCobaltUrl(item.url)||"",thumb:typeof item.thumb==="string"?item.thumb:""})).filter(item=>item.url);
+    if(!items.length)return res.status(502).json({success:false,platform,message:"The engine returned media choices that could not be safely opened."});
+    return res.json({success:true,platform,picker:items,message:"Choose a media item to download."});
+   }
+   if(body.status==="tunnel"||body.status==="redirect"){
+    const target=safeCobaltUrl(body.url);
+    if(!target)return res.status(502).json({success:false,platform,message:"The engine returned an unexpected download address."});
+    return res.json({success:true,platform,data:{title:platform+" media",videoUrl:target,downloadUrl:"/cobalt-file?url="+encodeURIComponent(target)}});
+   }
+   return res.status(422).json({success:false,platform,message:"This media link did not produce a downloadable file. Try a public post or video."});
+  }
+  const guidance={Pinterest:"Pinterest downloading is not enabled yet.",Reddit:"Reddit downloading is not enabled yet.",Threads:"Threads downloading is not enabled yet."};
   return res.status(501).json({success:false,platform,message:guidance[platform]||"This platform is not enabled yet."});
  }catch(error){console.error("Download request failed:",error.message);return res.status(502).json({success:false,platform,message:"The platform or downloader service could not process this link right now. Please try again shortly."});}
 });
-app.get(/.*/,(req,res,next)=>{if(req.path.startsWith("/api/")||["/download","/file"].includes(req.path))return next();res.sendFile(path.join(__dirname,"public","index.html"));});
+app.get(/.*/,(req,res,next)=>{if(req.path.startsWith("/api/")||["/download","/file","/cobalt-file"].includes(req.path))return next();res.sendFile(path.join(__dirname,"public","index.html"));});
 app.listen(PORT,"0.0.0.0",()=>console.log(`ØBΛ Downloader listening on port ${PORT}`));
