@@ -11,22 +11,30 @@ app.use(express.json({ limit: "10kb" }));
 app.use(rateLimit({ windowMs: 60_000, limit: 40, standardHeaders: true, legacyHeaders: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const HOSTS = { TikTok:["tiktok.com","vm.tiktok.com","vt.tiktok.com"], Instagram:["instagram.com"], YouTube:["youtube.com","youtu.be","music.youtube.com"], Facebook:["facebook.com","fb.watch"], X:["x.com","twitter.com","t.co"], Pinterest:["pinterest.com","pin.it"], Reddit:["reddit.com","redd.it","v.redd.it"], Snapchat:["snapchat.com"], Threads:["threads.net"] };
+const HOSTS = { TikTok:["tiktok.com","vm.tiktok.com","vt.tiktok.com","tt.site"], Instagram:["instagram.com"], YouTube:["youtube.com","youtu.be","music.youtube.com"], Facebook:["facebook.com","fb.watch"], X:["x.com","twitter.com","t.co"], Pinterest:["pinterest.com","pin.it"], Reddit:["reddit.com","redd.it","v.redd.it"], Snapchat:["snapchat.com"], Threads:["threads.net"] };
 function isHost(host,domain){return host===domain||host.endsWith("."+domain);}
 function extractUrl(input){
  const text=String(input||"").trim(); if(!text)return "";
  const candidates=text.match(/https?:\/\/[^\s<>"'\u201c\u201d]+/gi)||[];
  for(const candidate of candidates){const cleaned=candidate.replace(/[)\]}>,.!?;:'"\u2019]+$/g,"");try{const parsed=new URL(cleaned);if(Object.values(HOSTS).flat().some(domain=>isHost(parsed.hostname.toLowerCase(),domain)))return parsed.toString();}catch{}}
- const bare=text.match(/(?:www\.|vm\.|vt\.|m\.|lite\.)?(?:tiktok\.com|instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|x\.com|twitter\.com|t\.co|pinterest\.com|pin\.it|reddit\.com|redd\.it|snapchat\.com|threads\.net)\/[^\s<>"']+/i);
+ const bare=text.match(/(?:www\.|vm\.|vt\.|m\.|lite\.)?(?:tiktok\.com|tt\.site|instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|x\.com|twitter\.com|t\.co|pinterest\.com|pin\.it|reddit\.com|redd\.it|snapchat\.com|threads\.net)\/[^\s<>"']+/i);
  return bare?"https://"+bare[0].replace(/[)\]}>,.!?;:'"\u2019]+$/g,""):"";
 }
 function identifyPlatform(raw){let parsed;try{parsed=new URL(raw);}catch{return null;}if(!["http:","https:"].includes(parsed.protocol)||parsed.username||parsed.password)return null;const host=parsed.hostname.toLowerCase();for(const [platform,hosts]of Object.entries(HOSTS))if(hosts.some(domain=>isHost(host,domain)))return platform;return null;}
 async function resolveTikTokShare(raw){
  let current=raw;
- for(let i=0;i<6;i++){const parsed=new URL(current);if(!isHost(parsed.hostname.toLowerCase(),"tiktok.com"))throw new Error("TikTok redirected to an unexpected domain.");
- if(!["vm.tiktok.com","vt.tiktok.com","m.tiktok.com","lite.tiktok.com"].some(d=>isHost(parsed.hostname.toLowerCase(),d)))return current;
- const response=await axios.get(current,{maxRedirects:0,timeout:8000,validateStatus:s=>s>=200&&s<400,headers:{"User-Agent":"Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/122.0 Mobile Safari/537.36"}});
- if(!response.headers.location)return current;current=new URL(response.headers.location,current).toString();}
+ for(let i=0;i<6;i++){
+  const parsed=new URL(current);const host=parsed.hostname.toLowerCase();
+  const onTikTok=isHost(host,"tiktok.com");const onShareShortener=isHost(host,"tt.site");
+  if(!onTikTok&&!onShareShortener)throw new Error("TikTok share link redirected to an unexpected domain.");
+  const isShort=onShareShortener||["vm.tiktok.com","vt.tiktok.com","m.tiktok.com","lite.tiktok.com"].some(d=>isHost(host,d));
+  if(!isShort)return current;
+  const response=await axios.get(current,{maxRedirects:0,timeout:10000,validateStatus:s=>s>=200&&s<400,headers:{"User-Agent":"Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/122.0 Mobile Safari/537.36"}});
+  if(!response.headers.location)return current;
+  const next=new URL(response.headers.location,current);const nextHost=next.hostname.toLowerCase();
+  if(!isHost(nextHost,"tiktok.com")&&!isHost(nextHost,"tt.site"))throw new Error("TikTok share link redirected outside the expected domains.");
+  current=next.toString();
+ }
  return current;
 }
 function firstString(...values){for(const value of values)if(typeof value==="string"&&/^https:\/\//i.test(value))return value;return "";}
@@ -35,7 +43,7 @@ function findNestedMedia(data){
  const urls=video?.play_addr?.url_list||video?.download_addr?.url_list||video?.playAddr?.urlList||[];
  return firstString(data?.hdplay,data?.play,data?.wmplay,data?.url,data?.video_url,data?.download_url,data?.downloadUrl,data?.play_url,data?.play_addr,data?.video?.play,data?.video?.url,video?.play_addr?.url,video?.download_addr?.url,...urls);
 }
-app.get("/api",(_req,res)=>res.json({app:"ØBΛ Downloader",version:"2.2.0",status:"online",supportedPlatforms:["TikTok links and share text"],plannedPlatforms:["Instagram","YouTube","Facebook","X","Pinterest","Reddit","Snapchat","Threads"]}));
+app.get("/api",(_req,res)=>res.json({app:"ØBΛ Downloader",version:"2.3.0",status:"online",supportedPlatforms:["TikTok links and share text"],plannedPlatforms:["Instagram","YouTube","Facebook","X","Pinterest","Reddit","Snapchat","Threads"]}));
 app.get("/health",(_req,res)=>res.json({ok:true}));
 app.get("/file",async(req,res)=>{
  const raw=typeof req.query.url==="string"?req.query.url:"";let media;try{media=new URL(raw);}catch{return res.status(400).send("Invalid media URL.");}
