@@ -99,6 +99,7 @@ app.get("/download",async(req,res)=>{
    if(!cobaltConfigured())return res.status(503).json({success:false,platform,message:"The open-source download engine is not connected yet. TikTok downloads are still available; additional platforms will activate after the engine is deployed."});
    const requestHeaders={Accept:"application/json","Content-Type":"application/json"};
    if(process.env.COBALT_API_KEY)requestHeaders.Authorization=(process.env.COBALT_AUTH_SCHEME||"Api-Key")+" "+process.env.COBALT_API_KEY;
+   console.info("Cobalt request starting:",{platform,engine:cobaltBase(),apiKeyConfigured:Boolean(process.env.COBALT_API_KEY)});
    const upstream=await axios.post(cobaltBase()+"/",{url:raw,videoQuality:"720",youtubeVideoCodec:"h264",filenameStyle:"basic"},{headers:requestHeaders,timeout:90000,validateStatus:()=>true});
    const body=upstream.data||{};
    if(upstream.status<200||upstream.status>=300||body.status==="error"){
