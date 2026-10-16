@@ -105,10 +105,15 @@ app.get("/download",async(req,res)=>{
     if(!items.length)return res.status(502).json({success:false,platform,message:"The engine returned media choices that could not be safely opened."});
     return res.json({success:true,platform,picker:items,message:"Choose a media item to download."});
    }
-   if(body.status==="tunnel"||body.status==="redirect"){
+   if(body.status==="tunnel"){
     const target=safeCobaltUrl(body.url);
-    if(!target)return res.status(502).json({success:false,platform,message:"The engine returned an unexpected download address."});
+    if(!target)return res.status(502).json({success:false,platform,message:"The engine returned an unexpected tunnel address."});
     return res.json({success:true,platform,data:{title:platform+" media",videoUrl:target,downloadUrl:"/cobalt-file?url="+encodeURIComponent(target)}});
+   }
+   if(body.status==="redirect"){
+    let target;try{target=new URL(body.url);}catch{return res.status(502).json({success:false,platform,message:"The engine returned an invalid download address."});}
+    if(target.protocol!=="https:"||target.username||target.password)return res.status(502).json({success:false,platform,message:"The engine returned an unsafe download address."});
+    return res.json({success:true,platform,data:{title:platform+" media",videoUrl:target.toString(),downloadUrl:target.toString()}});
    }
    return res.status(422).json({success:false,platform,message:"This media link did not produce a downloadable file. Try a public post or video."});
   }
