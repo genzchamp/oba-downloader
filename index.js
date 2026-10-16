@@ -100,7 +100,7 @@ app.get("/download",async(req,res)=>{
    const requestHeaders={Accept:"application/json","Content-Type":"application/json"};
    if(process.env.COBALT_API_KEY)requestHeaders.Authorization=(process.env.COBALT_AUTH_SCHEME||"Api-Key")+" "+process.env.COBALT_API_KEY;
    console.info("Cobalt request starting:",{platform,engine:cobaltBase(),apiKeyConfigured:Boolean(process.env.COBALT_API_KEY)});
-   const upstream=await axios.post(cobaltBase()+"/",{url:raw,videoQuality:"720",youtubeVideoCodec:"h264",filenameStyle:"basic"},{headers:requestHeaders,timeout:90000,validateStatus:()=>true});
+   const upstream=await axios.post(cobaltBase()+"/",{url:raw,videoQuality:"720",youtubeVideoCodec:"h264",filenameStyle:"basic",alwaysProxy:true},{headers:requestHeaders,timeout:90000,validateStatus:()=>true});
    const body=upstream.data||{};
    if(upstream.status<200||upstream.status>=300||body.status==="error"){
     const errorCode=body.error&&typeof body.error==="object"?(body.error.code||body.error.status||"unknown"):typeof body.error==="string"?body.error:"unknown";
