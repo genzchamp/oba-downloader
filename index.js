@@ -6,6 +6,8 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.disable("x-powered-by");
+// Render runs behind a reverse proxy; trust the first proxy so rate limiting can read client IPs.
+app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: "10kb" }));
 app.use(rateLimit({ windowMs: 60_000, limit: 40, standardHeaders: true, legacyHeaders: false }));
@@ -99,7 +101,11 @@ app.get("/download",async(req,res)=>{
    if(process.env.COBALT_API_KEY)requestHeaders.Authorization=(process.env.COBALT_AUTH_SCHEME||"Api-Key")+" "+process.env.COBALT_API_KEY;
    const upstream=await axios.post(cobaltBase()+"/",{url:raw,videoQuality:"720",youtubeVideoCodec:"h264",filenameStyle:"basic"},{headers:requestHeaders,timeout:90000,validateStatus:()=>true});
    const body=upstream.data||{};
-   if(upstream.status<200||upstream.status>=300||body.status==="error")return res.status(422).json({success:false,platform,message:"The open-source engine could not process this link. It may be private, restricted, unsupported, or temporarily unavailable."});
+   if(upstream.status<200||upstream.status>=300||body.status==="error"){
+    const errorCode=body.error&&typeof body.error==="object"?(body.error.code||body.error.status||"unknown"):typeof body.error==="string"?body.error:"unknown";
+    console.warn("Cobalt request rejected:",{platform,httpStatus:upstream.status,cobaltStatus:body.status||"unknown",errorCode});
+    return res.status(422).json({success:false,platform,message:"The open-source engine could not process this link. It may be private, restricted, unsupported, or temporarily unavailable."});
+   }
    if(body.status==="picker"&&Array.isArray(body.picker)&&body.picker.length){
     const items=body.picker.map(item=>({type:item.type||"video",url:safeCobaltUrl(item.url)||"",thumb:typeof item.thumb==="string"?item.thumb:""})).filter(item=>item.url);
     if(!items.length)return res.status(502).json({success:false,platform,message:"The engine returned media choices that could not be safely opened."});
