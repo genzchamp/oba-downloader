@@ -1,0 +1,10 @@
+{
+  "appId": "online.obastudio.downloader",
+  "appName": "OBA Downloader",
+  "webDir": "public",
+  "server": {
+    "url": "https://oba-downloader.onrender.com",
+    "cleartext": false,
+    "allowNavigation": ["oba-downloader.onrender.com"]
+  }
+}

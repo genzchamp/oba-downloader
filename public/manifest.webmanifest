@@ -1,0 +1,14 @@
+{
+  "id": "/",
+  "name": "ØBΛ Downloader",
+  "short_name": "ØBΛ Downloader",
+  "description": "A premium, mobile-first video downloader.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#090b0a",
+  "theme_color": "#0b0d0b",
+  "icons": [
+    {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}
