@@ -103,7 +103,10 @@ app.get("/download",async(req,res)=>{
    const body=upstream.data||{};
    if(upstream.status<200||upstream.status>=300||body.status==="error"){
     const errorCode=body.error&&typeof body.error==="object"?(body.error.code||body.error.status||"unknown"):typeof body.error==="string"?body.error:"unknown";
-    console.warn("Cobalt request rejected:",{platform,httpStatus:upstream.status,cobaltStatus:body.status||"unknown",errorCode});
+    const responseType=typeof upstream.data;
+    const contentType=String(upstream.headers["content-type"]||"unknown");
+    const responsePreview=typeof upstream.data==="string"?upstream.data.slice(0,240).replace(/\\s+/g," "):upstream.data&&typeof upstream.data==="object"?JSON.stringify(upstream.data).slice(0,240):"empty";
+    console.warn("Cobalt request rejected:",{platform,httpStatus:upstream.status,cobaltStatus:body.status||"unknown",errorCode,responseType,contentType,responsePreview});
     return res.status(422).json({success:false,platform,message:"The open-source engine could not process this link. It may be private, restricted, unsupported, or temporarily unavailable."});
    }
    if(body.status==="picker"&&Array.isArray(body.picker)&&body.picker.length){
