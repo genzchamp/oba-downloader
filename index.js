@@ -100,7 +100,22 @@ app.get("/download",async(req,res)=>{
    const requestHeaders={Accept:"application/json","Content-Type":"application/json"};
    if(process.env.COBALT_API_KEY)requestHeaders.Authorization=(process.env.COBALT_AUTH_SCHEME||"Api-Key")+" "+process.env.COBALT_API_KEY;
    console.info("Cobalt request starting:",{platform,engine:cobaltBase(),apiKeyConfigured:Boolean(process.env.COBALT_API_KEY)});
-   const upstream=await axios.post(cobaltBase()+"/",{url:raw,videoQuality:"720",youtubeVideoCodec:"h264",filenameStyle:"basic",alwaysProxy:true},{headers:requestHeaders,timeout:90000,validateStatus:()=>true});
+   // Render free services may sleep. Retry transient gateway errors after pinging the engine to wake it.
+   let upstream;
+   for(let attempt=0;attempt<3;attempt++){
+    try{
+     upstream=await axios.post(cobaltBase()+"/",{url:raw,videoQuality:"720",youtubeVideoCodec:"h264",filenameStyle:"basic",alwaysProxy:true},{headers:requestHeaders,timeout:90000,validateStatus:()=>true});
+    }catch(error){
+     if(attempt===2)throw error;
+     console.warn("Cobalt request failed before a response; attempting wake/retry:",{platform,attempt:attempt+1,error:error.message});
+    }
+    const contentType=String(upstream?.headers?.["content-type"]||"");
+    const transientFailure=!upstream||[502,503,504].includes(upstream.status)||(upstream.status>=500&&contentType.includes("text/html"));
+    if(!transientFailure||attempt===2)break;
+    console.warn("Cobalt appears temporarily unavailable; waking engine before retry:",{platform,httpStatus:upstream?.status,attempt:attempt+1});
+    try{await axios.get(cobaltBase()+"/",{timeout:20000,validateStatus:()=>true,headers:{Accept:"text/html,application/json","User-Agent":"Mozilla/5.0"}});}catch(wakeError){console.warn("Cobalt wake request did not complete:",wakeError.message);}
+    await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));
+   }
    const body=upstream.data||{};
    if(upstream.status<200||upstream.status>=300||body.status==="error"){
     const errorCode=body.error&&typeof body.error==="object"?(body.error.code||body.error.status||"unknown"):typeof body.error==="string"?body.error:"unknown";
