@@ -102,7 +102,7 @@ app.get("/download", async (req, res) => {
   }
 });
 
-app.get("*", (req, res, next) => {
+app.get(/.*/, (req, res, next) => {
   if (req.path.startsWith("/api/") || req.path === "/download") return next();
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
