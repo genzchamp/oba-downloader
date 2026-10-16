@@ -42,5 +42,6 @@ form.addEventListener("submit",async e=>{
  }catch{show("Network error. Please check your connection and try again.")}
  finally{button.disabled=false;button.textContent="Download video ↓"}
 });
-fetch("/api").then(r=>r.json()).then(info=>{if(info.engineConfigured){document.querySelectorAll(".engine-state").forEach(el=>{el.textContent="ENGINE CONNECTED · TESTING";el.style.color="var(--lime)"});}}).catch(()=>{});\nif("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
+fetch("/api").then(r=>r.json()).then(info=>{if(info.engineConfigured){document.querySelectorAll(".engine-state").forEach(el=>{el.textContent="ENGINE CONNECTED · TESTING";el.style.color="var(--lime)"});}}).catch(()=>{});
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
 </script></body></html>
