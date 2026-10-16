@@ -14,16 +14,43 @@ app.use(rateLimit({ windowMs: 60_000, limit: 40, standardHeaders: true, legacyHe
 app.use(express.static(path.join(__dirname, "public")));
 
 const HOSTS = {
-  TikTok: ["tiktok.com", "www.tiktok.com", "m.tiktok.com", "vm.tiktok.com", "vt.tiktok.com"],
-  Instagram: ["instagram.com", "www.instagram.com"],
-  YouTube: ["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "music.youtube.com"],
-  Facebook: ["facebook.com", "www.facebook.com", "m.facebook.com", "fb.watch"],
-  X: ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "t.co"],
-  Pinterest: ["pinterest.com", "www.pinterest.com", "pin.it"],
-  Reddit: ["reddit.com", "www.reddit.com", "redd.it", "v.redd.it"],
-  Snapchat: ["snapchat.com", "www.snapchat.com"],
-  Threads: ["threads.net", "www.threads.net"]
+  TikTok: ["tiktok.com", "vm.tiktok.com", "vt.tiktok.com"],
+  Instagram: ["instagram.com"],
+  YouTube: ["youtube.com", "youtu.be", "music.youtube.com"],
+  Facebook: ["facebook.com", "fb.watch"],
+  X: ["x.com", "twitter.com", "t.co"],
+  Pinterest: ["pinterest.com", "pin.it"],
+  Reddit: ["reddit.com", "redd.it", "v.redd.it"],
+  Snapchat: ["snapchat.com"],
+  Threads: ["threads.net"]
 };
+
+function isHost(host, domain) {
+  return host === domain || host.endsWith("." + domain);
+}
+
+// Accepts either a bare URL or the full share message copied from a social app.
+function extractUrl(input) {
+  const text = String(input || "").trim();
+  if (!text) return "";
+  const candidates = text.match(/https?:\/\/[^\s<>"'\u201c\u201d]+/gi) || [];
+  for (const candidate of candidates) {
+    const cleaned = candidate.replace(/[)\]}>,.!?;:'"\u2019]+$/g, "");
+    try {
+      const parsed = new URL(cleaned);
+      if (Object.values(HOSTS).flat().some(domain => isHost(parsed.hostname.toLowerCase(), domain))) {
+        return parsed.toString();
+      }
+    } catch {}
+  }
+  // A user may paste a URL without a scheme.
+  const bare = text.match(/(?:www\.|vm\.|vt\.|m\.|lite\.)?(?:tiktok\.com|instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|x\.com|twitter\.com|t\.co|pinterest\.com|pin\.it|reddit\.com|redd\.it|snapchat\.com|threads\.net)\/[^\s<>"']+/i);
+  if (bare) {
+    const cleaned = bare[0].replace(/[)\]}>,.!?;:'"\u2019]+$/g, "");
+    return "https://" + cleaned;
+  }
+  return "";
+}
 
 function identifyPlatform(raw) {
   let parsed;
@@ -31,7 +58,7 @@ function identifyPlatform(raw) {
   if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) return null;
   const host = parsed.hostname.toLowerCase();
   for (const [platform, hosts] of Object.entries(HOSTS)) {
-    if (hosts.some(domain => host === domain || host.endsWith("." + domain))) return platform;
+    if (hosts.some(domain => isHost(host, domain))) return platform;
   }
   return null;
 }
@@ -40,10 +67,11 @@ async function resolveTikTokShare(raw) {
   let current = raw;
   for (let i = 0; i < 6; i++) {
     const parsed = new URL(current);
-    if (!["tiktok.com"].some(d => parsed.hostname === d || parsed.hostname.endsWith("." + d))) {
+    if (!isHost(parsed.hostname.toLowerCase(), "tiktok.com")) {
+      // TikTok's vm/vt links are subdomains of tiktok.com; reject unexpected redirects.
       throw new Error("The TikTok share link redirected to an unexpected domain. Please paste the full link copied from TikTok Lite.");
     }
-    if (!["vm.tiktok.com", "vt.tiktok.com", "m.tiktok.com"].some(d => parsed.hostname === d || parsed.hostname.endsWith("." + d))) return current;
+    if (!["vm.tiktok.com", "vt.tiktok.com", "m.tiktok.com", "lite.tiktok.com"].some(d => isHost(parsed.hostname.toLowerCase(), d))) return current;
     const response = await axios.get(current, {
       maxRedirects: 0, timeout: 8000, validateStatus: s => s >= 200 && s < 400,
       headers: { "User-Agent": "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/122.0 Mobile Safari/537.36" }
@@ -56,18 +84,49 @@ async function resolveTikTokShare(raw) {
 }
 
 app.get("/api", (_req, res) => res.json({
-  app: "ØBΛ Downloader", version: "2.0.0", status: "online",
-  supportedPlatforms: ["TikTok (including supported short links)"],
-  plannedPlatforms: ["Instagram", "YouTube", "Facebook", "X", "Pinterest", "Reddit", "Snapchat", "Threads"],
-  note: "Other platform integrations must be enabled and tested before being advertised as available."
+  app: "ØBΛ Downloader", version: "2.1.0", status: "online",
+  supportedPlatforms: ["TikTok (including supported TikTok Lite share text and links)"],
+  plannedPlatforms: ["Instagram", "YouTube", "Facebook", "X", "Pinterest", "Reddit", "Snapchat", "Threads"]
 }));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-app.get("/download", async (req, res) => {
-  const raw = typeof req.query.url === "string" ? req.query.url.trim() : "";
-  if (!raw || raw.length > 2048) return res.status(400).json({ success: false, message: "Paste a valid video link (maximum 2,048 characters)." });
+// Stream a resolved TikTok media file as an attachment instead of opening a video tab.
+app.get("/file", async (req, res) => {
+  const raw = typeof req.query.url === "string" ? req.query.url : "";
+  let media;
+  try { media = new URL(raw); } catch { return res.status(400).send("Invalid media URL."); }
+  const allowedMediaHosts = ["tiktokcdn.com", "tiktokv.com", "byteoversea.com", "ibytedtos.com", "akamaized.net", "tikwm.com"];
+  if (media.protocol !== "https:" || !allowedMediaHosts.some(domain => isHost(media.hostname.toLowerCase(), domain))) {
+    return res.status(400).send("This media host is not allowed.");
+  }
+  try {
+    const upstream = await axios.get(media.toString(), {
+      responseType: "stream", timeout: 25000,
+      headers: { "User-Agent": "Mozilla/5.0", Referer: "https://www.tiktok.com/" },
+      maxRedirects: 3
+    });
+    const contentType = upstream.headers["content-type"] || "video/mp4";
+    if (!contentType.startsWith("video/") && !contentType.includes("octet-stream")) {
+      upstream.data.destroy();
+      return res.status(502).send("The provider did not return a video file.");
+    }
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", 'attachment; filename="oba-tiktok-video.mp4"');
+    res.setHeader("Cache-Control", "no-store");
+    upstream.data.on("error", () => { if (!res.headersSent) res.status(502); res.end(); });
+    upstream.data.pipe(res);
+  } catch (error) {
+    console.error("Media download failed:", error.message);
+    res.status(502).send("Could not start the download. Please try again.");
+  }
+});
 
+app.get("/download", async (req, res) => {
+  const rawInput = typeof req.query.url === "string" ? req.query.url.trim() : "";
+  if (!rawInput || rawInput.length > 4096) return res.status(400).json({ success: false, message: "Paste a video link or the full share message copied from the app." });
+  const raw = extractUrl(rawInput);
+  if (!raw) return res.status(400).json({ success: false, message: "I couldn't find a social video link in that text. Copy the share message again, or paste the link." });
   const platform = identifyPlatform(raw);
   if (!platform) return res.status(400).json({ success: false, message: "That link is not from a supported social platform. Please check the copied URL." });
 
@@ -80,11 +139,20 @@ app.get("/download", async (req, res) => {
       });
       const payload = response.data;
       if (!payload || payload.code !== 0 || !payload.data) {
-        return res.status(422).json({ success: false, platform, message: "TikTok could not process this link. Try copying the link again from TikTok Lite, or use the original TikTok share link." });
+        return res.status(422).json({ success: false, platform, message: "TikTok could not process this link. Try sharing the video again from TikTok Lite." });
       }
-      return res.json({ success: true, platform, data: payload.data });
+      const data = payload.data;
+      const mediaUrl = data.play || data.hdplay || data.wmplay || data.url;
+      return res.json({
+        success: true, platform,
+        data: {
+          title: data.title || "TikTok video",
+          cover: data.cover || data.origin_cover || "",
+          videoUrl: mediaUrl || "",
+          downloadUrl: mediaUrl ? "/file?url=" + encodeURIComponent(mediaUrl) : ""
+        }
+      });
     }
-
     const guidance = {
       Instagram: "Instagram downloading is not enabled yet. Only public content that you have permission to save will be supported.",
       YouTube: "YouTube downloading is not enabled yet. Use YouTube's official download/offline options where available, or download content you own through YouTube Studio.",
@@ -103,7 +171,7 @@ app.get("/download", async (req, res) => {
 });
 
 app.get(/.*/, (req, res, next) => {
-  if (req.path.startsWith("/api/") || req.path === "/download") return next();
+  if (req.path.startsWith("/api/") || req.path === "/download" || req.path === "/file") return next();
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
