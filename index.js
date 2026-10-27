@@ -100,7 +100,16 @@ app.get("/download",async(req,res)=>{
    const requestHeaders={Accept:"application/json","Content-Type":"application/json"};
    if(process.env.COBALT_API_KEY)requestHeaders.Authorization=(process.env.COBALT_AUTH_SCHEME||"Api-Key")+" "+process.env.COBALT_API_KEY;
    console.info("Cobalt request starting:",{platform,engine:cobaltBase(),apiKeyConfigured:Boolean(process.env.COBALT_API_KEY)});
-   // Render free services may sleep. Retry transient gateway errors after pinging the engine to wake it.
+   // Wake the sleeping free-tier engine before asking it to process the media link.
+   try{
+    console.info("Waking Cobalt engine before media request:",{platform,engine:cobaltBase()});
+    await axios.get(cobaltBase()+"/",{timeout:25000,validateStatus:()=>true,headers:{Accept:"text/html,application/json","User-Agent":"Mozilla/5.0"}});
+    await new Promise(resolve=>setTimeout(resolve,2500));
+   }catch(wakeError){
+    console.warn("Cobalt pre-wake request did not complete; continuing with retries:",wakeError.message);
+    await new Promise(resolve=>setTimeout(resolve,4000));
+   }
+   // Keep the existing retries for cold starts and temporary gateway errors.
    let upstream;
    for(let attempt=0;attempt<3;attempt++){
     try{
