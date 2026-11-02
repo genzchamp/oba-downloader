@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0d0b"><meta name="description" content="ØBΛ Downloader — a clean, mobile-first way to save videos you have permission to download.">
-<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/svg+xml" href="/oba-mark.svg"><link rel="apple-touch-icon" href="/oba-mark.svg">
 <title>ØBΛ Downloader — Save what matters</title>
 <style>
 :root{color-scheme:dark;--bg:#090b0a;--panel:#111512;--panel2:#171c18;--lime:#b7ff4a;--muted:#a2aaa3;--line:#29312a;--white:#f4f7f1}
@@ -14,7 +14,7 @@
 </style>
 </head>
 <body><div class="wrap">
-<header class="nav"><div class="brand"><div class="logo">Ø</div><span>ØBΛ <span style="color:var(--lime)">DOWNLOADER</span></span></div><span class="pill">● BUILT FOR MOBILE</span></header>
+<header class="nav"><div class="brand"><img class="logo" src="/oba-mark.svg" alt="OBA" style="object-fit:contain;background:transparent;box-shadow:none"><span>ØBΛ <span style="color:var(--lime)">DOWNLOADER</span></span></div><span class="pill">● BUILT FOR MOBILE</span></header>
 <main><section class="hero"><div class="eyebrow">Simple. Fast. Thoughtful.</div><h1>Your videos.<br><span>Your way.</span></h1><p>Save public videos from TikTok, Instagram and Facebook with one simple, mobile-friendly experience. Paste a link or the share message copied from the app.</p></section>
 <section class="card"><label class="label" for="url">VIDEO LINK OR SHARE MESSAGE</label><form id="form"><div class="inputrow"><input class="urlinput" id="url" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste a public video or post link…" required maxlength="4096"><button class="btn" id="submit" type="submit">Download video ↓</button></div></form><p class="hint" id="download-hint">TikTok uses its own download flow. Instagram and Facebook use a separate open-source engine, which may take a little longer to wake on the free hosting plan. Only download content you own or have permission to save.</p><div id="result" class="result hidden" role="status" aria-live="polite"></div></section>
 <section class="platforms" aria-label="Supported platforms"><div class="platform"><div class="picon">♪</div><div class="pname">TikTok</div><div class="pstate live">● AVAILABLE</div><div class="pstate">TikTok Lite links supported</div></div><div class="platform"><div class="picon">◎</div><div class="pname">Instagram</div><div class="pstate engine-state">CHECKING ENGINE…</div><div class="pstate">Public posts and videos</div></div><div class="platform"><div class="picon">f</div><div class="pname">Facebook</div><div class="pstate engine-state">CHECKING ENGINE…</div><div class="pstate">Public video links</div></div></section>
