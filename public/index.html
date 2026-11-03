@@ -36,7 +36,7 @@
  .pname{font-size:11px;margin-top:4px}
  .pstate{font-size:9px;line-height:1.25;margin-top:4px}
  .platform:first-child .pstate:last-child{font-size:8px}
- .section,.footer{display:none}
+ .section{display:none}.footer{display:block;flex:0 0 auto;text-align:center;font-size:10px;padding:5px 0 8px;margin:0;border-top:1px solid #ffffff12}.privacy-link{color:var(--lime);font-weight:700;text-decoration:none;padding:5px 10px}.footer-extra{display:none}
  .result{max-height:110px;overflow:auto;margin-top:9px;padding:10px;font-size:12px}
 }
 @media(max-width:380px),(max-height:700px){
@@ -58,7 +58,7 @@
 <section class="card"><label class="label" for="url">VIDEO LINK OR SHARE MESSAGE</label><form id="form"><div class="inputrow"><input class="urlinput" id="url" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste a public video or post link…" required maxlength="4096"><button class="btn" id="submit" type="submit">Download video ↓</button></div></form><div id="result" class="result hidden" role="status" aria-live="polite"></div></section>
 <section class="platforms" aria-label="Supported platforms"><div class="platform"><div class="picon">♪</div><div class="pname">TikTok</div><div class="pstate live">SUPPORTED</div><div class="pstate">TikTok Lite links also supported</div></div><div class="platform"><div class="picon">◎</div><div class="pname">Instagram</div><div class="pstate live">SUPPORTED</div><div class="pstate">Public posts and videos</div></div><div class="platform"><div class="picon">f</div><div class="pname">Facebook</div><div class="pstate live">SUPPORTED</div><div class="pstate">Public video links</div></div></section>
 <section class="section"><h2>Made to feel effortless.</h2><div class="features"><article class="feature"><div>✦</div><b>Clean by design</b><p>A calm, premium interface that stays easy to use on a phone.</p></article><article class="feature"><div>↗</div><b>Paste the whole message</b><p>The downloader extracts a supported link from the text copied from the app.</p></article><article class="feature"><div>⌁</div><b>Privacy-minded</b><p>No account needed for the current TikTok flow. Avoid sharing private links or personal data.</p></article></div></section>
-</main><footer class="footer">© <span id="year"></span> ØBΛ Downloader · Built with care, by the permission of Allah.<br><br>Respect creators, copyright and each platform's terms.</footer></div>
+</main><footer class="footer"><a class="privacy-link" href="/privacy.html">Privacy Policy</a><span class="footer-extra"> · © <span id="year"></span> ØBΛ Downloader · Built with care.</span></footer></div>
 <script>
 const form=document.getElementById("form"),input=document.getElementById("url"),button=document.getElementById("submit"),result=document.getElementById("result");
 document.getElementById("year").textContent=new Date().getFullYear();
