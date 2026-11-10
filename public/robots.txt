@@ -5,4 +5,4 @@ Disallow: /download
 Disallow: /file
 Disallow: /cobalt-file
 
-Sitemap: https://oba-downloader.onrender.com/sitemap.xml
+Sitemap: https://obadownloader.site/sitemap.xml
