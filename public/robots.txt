@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api
+Disallow: /download
+Disallow: /file
+Disallow: /cobalt-file
+
+Sitemap: https://oba-downloader.onrender.com/sitemap.xml
